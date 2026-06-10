@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primary">#1D4ED8</color>
+    <color name="secondary">#0284C7</color>
+    <color name="button_call_bg">#059669</color>
+    <color name="button_transfer_bg">#0284C7</color>
+    <color name="button_copy_bg">#1D4ED8</color>
+    <color name="button_cancel_bg">#F1F5F9</color>
+    <color name="button_cancel_ripple">#CBD5E1</color>
+    <color name="link_text">#0284C7</color>
+    <color name="background">#FFFFFF</color>
+    <color name="surface">#ffffff</color>
+    <color name="input_card_bg">#FFFFFF</color>
+    <color name="toolbar_popup_bg">#FFFFFF</color>
+    <color name="toolbar_popup_text">#0F172A</color>
+    <color name="bank_tab_brand">#CB0070</color>
+    <color name="text_main">#0F172A</color>
+    <color name="text_sub">#475569</color>
+    <color name="text_input_placeholder">#64748B</color>
+    <color name="border">#E2E8F0</color>
+    <color name="history_sheet_bg">#F8FAFC</color>
+    <color name="history_item_bg">#FFFFFF</color>
+    <color name="history_item_border">#F1F5F9</color>
+    <color name="history_item_text_sub">#64748B</color>
+    <color name="error">#DC2626</color>
+    <color name="success">#059669</color>
+</resources>

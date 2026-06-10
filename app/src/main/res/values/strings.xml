@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name">حول بكبسة زر</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+
+    <string name="tab_bank_friend">بنكي دفع لصديق</string>
+    <string name="tab_wallet_friend_1">دفع لصديق محفظة</string>
+    <string name="tab_wallet_merchant">دفع لتاجر محفظة</string>
+    <string name="tab_wallet_friend_2">دفع لصديق محفظة</string>
+
+    <string name="recipient_number">رقم المستلم</string>
+    <string name="amount">المبلغ</string>
+
+    <string name="ussd_preview_hint">سيظهر الكود هنا</string>
+
+    <string name="btn_call">اتصال</string>
+    <string name="btn_transfer">انتقال</string>
+    <string name="btn_copy">نسخ الكود</string>
+
+    <string name="pinned_contacts">المثبتون</string>
+    <string name="recent_transactions">آخر ١٠ حركات</string>
+    <string name="view_history">عرض السجل</string>
+
+    <string name="footer_text">تم إنشاء التطبيق بواسطة عمر مصطفى أبو شنب</string>
+
+    <string name="error_invalid_data">يرجى التأكد من صحة البيانات</string>
+    <string name="error_invalid_phone">رقم هاتف غير صالح</string>
+    <string name="error_invalid_amount">يجب أن يكون المبلغ بين 1 و 999</string>
+    <string name="error_no_dialer">لا يوجد تطبيق اتصال مدعوم لإجراء المكالمة</string>
+    <string name="msg_copied">تم نسخ الكود بنجاح</string>
+    <string name="permission_call_denied">صلاحية الاتصال مرفوضة</string>
+
+    <string name="privacy_title">سياسة الخصوصية والأمان</string>
+    <string name="privacy_content">هذا التطبيق أداة غير رسمية، تم تطويره بهدف تسهيل عملية إجراء التحويلات المالية عبر أكواد USSD. يعتمد التطبيق على الواجهة الرسمية لنظام التشغيل لطلب الأكواد، ولا يملك أي صلاحية للوصول إلى البيانات التي تُدخلها أو الخيارات التي تُجريها أثناء المكالمة.\n\nلمزيد من المعلومات حول آلية عمل واجهة USSD في نظام أندرويد، يمكنك الاطلاع على &lt;a href=\"https://developer.android.com/guide/topics/connectivity/telephony\">التوثيق الرسمي من Google&lt;/a>.\n\nلا يقوم التطبيق بمشاركة أي بيانات مع أي جهة خارجية، ولا يمتلك صلاحية الوصول إلى الإنترنت أو العمل في الخلفية.\n\nلا يصل التطبيق إلى جهات الاتصال بشكل مباشر، بل يتيح لك اختيار جهة الاتصال التي تريدها فقط عبر &lt;a href=\"https://developer.android.com/training/contacts-provider/modify-data\">الواجهة الرسمية المقدّمة من النظام&lt;/a>.\n\nالمشروع مفتوح المصدر ومتاح للمراجعة على &lt;a href=\"https://github.com/omar-shanab/OneTapTransfer\">GitHub&lt;/a>.\n\nهذا التطبيق حلٌّ مؤقت إلى أن تُوفّر التطبيقات الرسمية خياراً يُسهّل على المستخدمين إجراء عمليات التحويل بسرعة وأمان.</string>
+    <string name="btn_close">إغلاق</string>
+    <string name="pin_contact_dialog_title">تثبيت جهة الاتصال</string>
+    <string name="pin_contact_number_value">الرقم: %1$s</string>
+    <string name="contact_name_hint">اسم الشخص</string>
+    <string name="btn_pin">تثبيت</string>
+    <string name="btn_cancel">إلغاء</string>
+    <string name="error_contact_name_min">يجب إدخال اسم لا يقل عن 3 أحرف</string>
+
+    <string name="history_title">سجل عمليات التحويل</string>
+    <string name="clear_history">مسح السجل</string>
+    <string name="no_history">لا توجد عمليات سابقة</string>
+    <string name="no_pinned_contacts">لا يوجد جهات مثبتة بعد</string>
+    <string name="no_recent_transactions">لا توجد عمليات تحويل بعد</string>
+</resources>

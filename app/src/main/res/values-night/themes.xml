@@ -1,0 +1,35 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.OneTapTransfer" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/background</item>
+        <item name="colorControlActivated">@color/secondary</item>
+        <item name="android:colorAccent">@color/secondary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_main</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/text_main</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.OneTapTransfer.MaterialAlertDialog</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+    </style>
+
+    <style name="Theme.OneTapTransfer.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/app_icon</item>
+        <item name="windowSplashScreenBackground">@color/surface</item>
+        <item name="postSplashScreenTheme">@style/Theme.OneTapTransfer</item>
+    </style>
+
+    <style name="ThemeOverlay.OneTapTransfer.ToolbarPopup" parent="ThemeOverlay.Material3.Dark">
+        <item name="android:popupBackground">@color/toolbar_popup_bg</item>
+        <item name="android:textColorPrimary">@color/toolbar_popup_text</item>
+        <item name="android:textColorSecondary">@color/toolbar_popup_text</item>
+        <item name="colorOnSurface">@color/toolbar_popup_text</item>
+        <item name="colorSurface">@color/toolbar_popup_bg</item>
+    </style>
+</resources>

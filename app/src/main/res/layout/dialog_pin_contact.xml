@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_pin_background"
+    android:layoutDirection="rtl"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="16dp">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start"
+        android:includeFontPadding="false"
+        android:text="@string/pin_contact_dialog_title"
+        android:textAlignment="viewStart"
+        android:textColor="@color/text_main"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvPinnedNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="start"
+        android:includeFontPadding="false"
+        android:textAlignment="viewStart"
+        android:textColor="@color/text_sub"
+        android:textDirection="firstStrong"
+        android:textSize="14sp" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/nameLayout"
+        style="@style/Widget.OneTapTransfer.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:hint="@string/contact_name_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etContactName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionDone"
+            android:inputType="textPersonName"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/text_main"
+            android:textColorHint="@color/text_input_placeholder"
+            android:textCursorDrawable="@drawable/dialog_pin_text_cursor"
+            android:textDirection="firstStrong" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPin"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:text="@string/btn_pin"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/button_transfer_bg"
+            app:cornerRadius="14dp"
+            app:iconGravity="textStart"
+            app:rippleColor="@color/secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="@string/btn_cancel"
+            android:textColor="@color/text_main"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/button_cancel_bg"
+            app:cornerRadius="14dp"
+            app:iconGravity="textStart"
+            app:rippleColor="@color/button_cancel_ripple" />
+
+    </LinearLayout>
+
+</LinearLayout>

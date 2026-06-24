@@ -10,7 +10,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.telecom.PhoneAccount
+import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
+import android.telephony.SubscriptionInfo
+import android.telephony.SubscriptionManager
+import android.telephony.TelephonyManager
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -30,7 +35,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import dev.anonymous.onetaptransfer.databinding.ActivityMainBinding
 import dev.anonymous.onetaptransfer.ui.HistoryBottomSheet
@@ -51,32 +56,46 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pinnedAdapter: PinnedContactAdapter
 
     private var currentType = "WALLET_1"
+    private var selectedSimSlot = 1
+    private var activeSimOptions: List<SimOption> = emptyList()
     private var didApplyInitialFocus = false
+    private var skipNextSimSelectorRefresh = false
+    private var isUpdatingSimSelection = false
 
     /** Cached reference to InputMethodManager to avoid repeated getSystemService calls. */
     private val imm: InputMethodManager by lazy {
         getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
     }
 
+    private data class SimOption(
+        val slot: Int,
+        val subscriptionId: Int,
+        val displayName: String
+    )
+
     companion object {
         private const val PIN_CONTACT_DIALOG_TAG = "pin_contact_dialog"
+        private const val DEFAULT_SIM_SLOT = 1
+        private const val SECOND_SIM_SLOT = 2
+        private const val EXTRA_SUBSCRIPTION_ID = "android.telephony.extra.SUBSCRIPTION_ID"
+        private const val EXTRA_SUBSCRIPTION_INDEX = "android.telephony.extra.SUBSCRIPTION_INDEX"
 
         /** Maps a tab position index to the corresponding transaction type string. */
         fun tabIndexToType(index: Int): String = when (index) {
-            0 -> "BANK"
-            1 -> "WALLET_1"
-            2 -> "MERCHANT"
-            3 -> "WALLET_2"
+            0 -> "WALLET_1"
+            1 -> "MERCHANT_1"
+            2 -> "WALLET_2"
+            3 -> "MERCHANT_2"
             else -> "WALLET_1"
         }
 
         /** Maps a transaction type string back to its tab position index. */
         fun typeToTabIndex(type: String): Int = when (type) {
-            "BANK" -> 0
-            "WALLET_1" -> 1
-            "MERCHANT" -> 2
-            "WALLET_2" -> 3
-            else -> 1
+            "WALLET_1" -> 0
+            "MERCHANT_1" -> 1
+            "WALLET_2" -> 2
+            "MERCHANT_2" -> 3
+            else -> 0
         }
     }
 
@@ -88,13 +107,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) {
-            makeDirectCall()
-        } else {
-            Toast.makeText(this, R.string.permission_call_denied, Toast.LENGTH_SHORT).show()
+    private val requestDirectCallPermissionsLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grantResults ->
+            val hasAllPermissions = requiredDirectCallPermissions().all { permission ->
+                grantResults[permission] == true || isPermissionGranted(permission)
+            }
+            if (hasAllPermissions) {
+                makeDirectCall()
+            } else {
+                showDirectCallPermissionDialog()
+            }
         }
-    }
 
     // endregion
 
@@ -111,6 +134,15 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         setupFragmentResultListeners()
         observeViewModel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (skipNextSimSelectorRefresh) {
+            skipNextSimSelectorRefresh = false
+            return
+        }
+        refreshSimSelector()
     }
 
     // region System Bars & Window Insets
@@ -155,6 +187,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupUI() {
         setupRecyclerViews()
         setupTabs()
+        setupSimSelector()
         setupInputWatchers()
         setupContactPicker()
         setupActionButtons()
@@ -166,7 +199,7 @@ class MainActivity : AppCompatActivity() {
         historyAdapter = TransactionAdapter(
             onDelete = { viewModel.deleteTransaction(it.id) },
             onPin = { handlePinTransaction(it.recipient, it.type) },
-            onClick = { fillInputs(it.recipient, it.amount, it.type) }
+            onClick = { fillInputs(it.recipient, it.amount, it.type, it.simSlot) }
         )
         binding.rvHistory.layoutManager = LinearLayoutManager(this)
         binding.rvHistory.adapter = historyAdapter
@@ -209,6 +242,52 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupSimSelector() {
+        binding.simToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val simSlot = when (checkedId) {
+                R.id.btnSim2 -> SECOND_SIM_SLOT
+                else -> DEFAULT_SIM_SLOT
+            }
+            selectedSimSlot = simSlot
+            if (!isUpdatingSimSelection) {
+                viewModel.saveLastSimSlot(simSlot)
+            }
+        }
+        refreshSimSelector()
+    }
+
+    private fun refreshSimSelector() {
+        if (!hasDirectCallPermissions()) {
+            activeSimOptions = emptyList()
+            selectedSimSlot = DEFAULT_SIM_SLOT
+            binding.simToggleGroup.visibility = View.GONE
+            return
+        }
+
+        activeSimOptions = loadActiveSimOptions()
+        if (activeSimOptions.size < 2) {
+            selectedSimSlot = DEFAULT_SIM_SLOT
+            binding.simToggleGroup.visibility = View.GONE
+            return
+        }
+
+        binding.btnSim1.text = activeSimOptions.getOrNull(0)?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.sim_1_default)
+        binding.btnSim2.text = activeSimOptions.getOrNull(1)?.displayName
+            ?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.sim_2_default)
+
+        val persistedSlot = if (viewModel.lastSimSlot.value == SECOND_SIM_SLOT) {
+            SECOND_SIM_SLOT
+        } else {
+            DEFAULT_SIM_SLOT
+        }
+        selectSimSlot(persistedSlot, persist = false)
+        binding.simToggleGroup.visibility = View.VISIBLE
+    }
+
     private fun setupInputWatchers() {
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -247,8 +326,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupHistoryButton() {
         binding.tvViewHistory.setOnClickListener {
             val bottomSheet = HistoryBottomSheet()
-            bottomSheet.onTransactionClick = { recipient, amount, type ->
-                fillInputs(recipient, amount, type)
+            bottomSheet.onTransactionClick = { recipient, amount, type, simSlot ->
+                fillInputs(recipient, amount, type, simSlot)
             }
             bottomSheet.onPinTransaction = { recipient, type ->
                 handlePinTransaction(recipient, type)
@@ -411,7 +490,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(Intent.ACTION_DIAL, "tel:${Uri.encode(code)}".toUri())
                 startActivity(intent)
                 if (currentType != "BANK") {
-                    viewModel.saveTransaction(recipient, amount, currentType)
+                    viewModel.saveTransaction(recipient, amount, currentType, selectedSimSlot)
                 }
             }
             "COPY" -> {
@@ -424,10 +503,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkCallPermissionAndMakeCall() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+        val missingPermissions = requiredDirectCallPermissions().filterNot { isPermissionGranted(it) }
+        if (missingPermissions.isEmpty()) {
             makeDirectCall()
         } else {
-            requestPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+            skipNextSimSelectorRefresh = true
+            requestDirectCallPermissionsLauncher.launch(missingPermissions.toTypedArray())
         }
     }
 
@@ -437,22 +518,175 @@ class MainActivity : AppCompatActivity() {
 
         if (!validateInputs(recipient, amount)) return
 
+        if (!hasDirectCallPermissions()) {
+            checkCallPermissionAndMakeCall()
+            return
+        }
+
+        val telecomManager = getSystemService(TelecomManager::class.java)
+        if (telecomManager == null) {
+            Toast.makeText(this, R.string.error_direct_call_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        activeSimOptions = loadActiveSimOptions()
+        if (activeSimOptions.isEmpty()) {
+            selectedSimSlot = DEFAULT_SIM_SLOT
+            Toast.makeText(this, R.string.error_direct_call_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (activeSimOptions.size < 2) {
+            selectedSimSlot = DEFAULT_SIM_SLOT
+        }
+
+        val selectedPhoneAccount = if (activeSimOptions.size >= 2) {
+            resolvePhoneAccountHandleForSelectedSim(telecomManager)
+        } else {
+            null
+        }
+
+        if (activeSimOptions.size >= 2 && selectedPhoneAccount == null) {
+            Toast.makeText(this, R.string.error_direct_call_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val code = viewModel.generateUssdCode(currentType, recipient, amount)
         val encodedCode = Uri.encode(code)
         val phoneUri = "tel:$encodedCode".toUri()
-        val preferredDialerPackages = resolvePreferredDialerPackages(phoneUri)
-
-        for (dialerPackage in preferredDialerPackages) {
-            val callIntent = Intent(Intent.ACTION_CALL, phoneUri).setPackage(dialerPackage)
-            if (startActivitySafely(callIntent)) {
-                if (currentType != "BANK") {
-                    viewModel.saveTransaction(recipient, amount, currentType)
-                }
-                return
+        val callExtras = Bundle().apply {
+            selectedPhoneAccount?.let {
+                putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, it)
             }
         }
 
-        Toast.makeText(this, R.string.error_no_dialer, Toast.LENGTH_SHORT).show()
+        try {
+            telecomManager.placeCall(phoneUri, callExtras)
+            viewModel.saveLastSimSlot(selectedSimSlot)
+            if (currentType != "BANK") {
+                viewModel.saveTransaction(recipient, amount, currentType, selectedSimSlot)
+            }
+        } catch (_: SecurityException) {
+            showDirectCallPermissionDialog()
+        } catch (_: Exception) {
+            Toast.makeText(this, R.string.error_direct_call_unavailable, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun requiredDirectCallPermissions(): Array<String> {
+        return arrayOf(
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.READ_PHONE_STATE
+        )
+    }
+
+    private fun hasDirectCallPermissions(): Boolean {
+        return requiredDirectCallPermissions().all { isPermissionGranted(it) }
+    }
+
+    private fun isPermissionGranted(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun showDirectCallPermissionDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.permission_direct_call_title)
+            .setMessage(R.string.permission_direct_call_message)
+            .setPositiveButton(R.string.btn_close, null)
+            .show()
+    }
+
+    private fun loadActiveSimOptions(): List<SimOption> {
+        if (!isPermissionGranted(Manifest.permission.READ_PHONE_STATE)) return emptyList()
+
+        val subscriptionManager = getSystemService(SubscriptionManager::class.java) ?: return emptyList()
+        val subscriptions = try {
+            subscriptionManager.activeSubscriptionInfoList.orEmpty()
+        } catch (_: SecurityException) {
+            return emptyList()
+        }
+
+        return subscriptions
+            .sortedWith(
+                compareBy<SubscriptionInfo> {
+                    if (it.simSlotIndex >= 0) it.simSlotIndex else Int.MAX_VALUE
+                }.thenBy { it.subscriptionId }
+            )
+            .take(2)
+            .mapIndexed { index, subscription ->
+                val displayName = subscription.displayName
+                    ?.toString()
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: getString(
+                        if (index == 0) R.string.sim_1_default else R.string.sim_2_default
+                    )
+                SimOption(
+                    slot = index + 1,
+                    subscriptionId = subscription.subscriptionId,
+                    displayName = displayName
+                )
+            }
+    }
+
+    private fun resolvePhoneAccountHandleForSelectedSim(
+        telecomManager: TelecomManager
+    ): PhoneAccountHandle? {
+        val selectedOption = activeSimOptions.firstOrNull { it.slot == selectedSimSlot }
+            ?: activeSimOptions.firstOrNull()
+            ?: return null
+
+        selectedSimSlot = selectedOption.slot
+
+        val callCapableAccounts = try {
+            telecomManager.callCapablePhoneAccounts.orEmpty()
+        } catch (_: SecurityException) {
+            return null
+        }
+
+        return callCapableAccounts.firstOrNull { handle ->
+            getSubscriptionIdForPhoneAccount(telecomManager, handle) == selectedOption.subscriptionId
+        }
+    }
+
+    private fun getSubscriptionIdForPhoneAccount(
+        telecomManager: TelecomManager,
+        handle: PhoneAccountHandle
+    ): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val telephonyManager = getSystemService(TelephonyManager::class.java)
+            val subscriptionId = try {
+                telephonyManager?.getSubscriptionId(handle) ?: SubscriptionManager.INVALID_SUBSCRIPTION_ID
+            } catch (_: SecurityException) {
+                SubscriptionManager.INVALID_SUBSCRIPTION_ID
+            }
+            if (subscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                return subscriptionId
+            }
+        }
+
+        val phoneAccount = try {
+            telecomManager.getPhoneAccount(handle)
+        } catch (_: SecurityException) {
+            null
+        } ?: return SubscriptionManager.INVALID_SUBSCRIPTION_ID
+
+        return getSubscriptionIdFromPhoneAccount(phoneAccount)
+    }
+
+    private fun getSubscriptionIdFromPhoneAccount(phoneAccount: PhoneAccount): Int {
+        val extras = phoneAccount.extras ?: return SubscriptionManager.INVALID_SUBSCRIPTION_ID
+        val subscriptionId = extras.getInt(
+            EXTRA_SUBSCRIPTION_ID,
+            SubscriptionManager.INVALID_SUBSCRIPTION_ID
+        )
+        if (subscriptionId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+            return subscriptionId
+        }
+        return extras.getInt(
+            EXTRA_SUBSCRIPTION_INDEX,
+            SubscriptionManager.INVALID_SUBSCRIPTION_ID
+        )
     }
 
     // endregion
@@ -573,12 +807,14 @@ class MainActivity : AppCompatActivity() {
      *
      * @param type If non-null, switches to the tab corresponding to this transaction type.
      */
-    private fun fillInputs(recipient: String, amount: String, type: String? = null) {
+    private fun fillInputs(recipient: String, amount: String, type: String? = null, simSlot: Int? = null) {
         // Switch tab if type is specified
         if (type != null) {
             val tabIndex = typeToTabIndex(type)
             binding.tabLayout.getTabAt(tabIndex)?.select()
         }
+
+        simSlot?.let { selectSimSlot(it, persist = false) }
 
         val normalizedRecipient = normalizePalestinianMobile(recipient)
 
@@ -595,6 +831,25 @@ class MainActivity : AppCompatActivity() {
         // If amount is empty, focus on amount field for quick entry
         if (currentType != "BANK" && amount.isEmpty()) {
             focusAmountDelayed()
+        }
+    }
+
+    private fun selectSimSlot(simSlot: Int, persist: Boolean) {
+        val normalizedSlot = if (simSlot == SECOND_SIM_SLOT) SECOND_SIM_SLOT else DEFAULT_SIM_SLOT
+        selectedSimSlot = normalizedSlot
+
+        val buttonId = if (normalizedSlot == SECOND_SIM_SLOT) R.id.btnSim2 else R.id.btnSim1
+        if (binding.simToggleGroup.checkedButtonId != buttonId) {
+            isUpdatingSimSelection = true
+            try {
+                binding.simToggleGroup.check(buttonId)
+            } finally {
+                isUpdatingSimSelection = false
+            }
+        }
+
+        if (persist) {
+            viewModel.saveLastSimSlot(normalizedSlot)
         }
     }
 
@@ -630,68 +885,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // endregion
-
-    // endregion
-
-    // region Dialer Resolution
-
-    private fun startActivitySafely(intent: Intent): Boolean {
-        return try {
-            startActivity(intent)
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun resolvePreferredDialerPackages(phoneUri: Uri): List<String> {
-        val packages = mutableListOf<String>()
-
-        val systemDialer = getSystemDialerPackageName()
-        if (!systemDialer.isNullOrBlank()) {
-            packages += systemDialer
-        }
-
-        val defaultDialer = getDefaultDialerPackageName()
-        if (!defaultDialer.isNullOrBlank() && isSystemPackage(defaultDialer)) {
-            packages += defaultDialer
-        }
-
-        val callIntent = Intent(Intent.ACTION_CALL, phoneUri)
-        val systemCallHandler = packageManager
-            .queryIntentActivities(callIntent, PackageManager.MATCH_DEFAULT_ONLY)
-            .mapNotNull { it.activityInfo?.packageName }
-            .firstOrNull { isSystemPackage(it) }
-
-        if (!systemCallHandler.isNullOrBlank()) {
-            packages += systemCallHandler
-        }
-
-        return packages.distinct()
-    }
-
-    private fun getDefaultDialerPackageName(): String? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
-        val telecomManager = getSystemService(TelecomManager::class.java) ?: return null
-        return telecomManager.defaultDialerPackage
-    }
-
-    private fun getSystemDialerPackageName(): String? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
-        val telecomManager = getSystemService(TelecomManager::class.java) ?: return null
-        return telecomManager.systemDialerPackage
-    }
-
-    private fun isSystemPackage(packageName: String): Boolean {
-        return try {
-            val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            val isSystem = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
-            val isUpdatedSystem = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-            isSystem || isUpdatedSystem
-        } catch (_: Exception) {
-            false
-        }
-    }
 
     // endregion
 }

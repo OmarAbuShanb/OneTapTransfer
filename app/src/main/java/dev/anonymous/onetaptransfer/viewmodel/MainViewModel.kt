@@ -22,13 +22,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastTab = MutableStateFlow(prefManager.getLastTab())
     val lastTab: StateFlow<Int> = _lastTab
 
-    fun saveTransaction(recipient: String, amount: String, type: String) {
+    private val _lastSimSlot = MutableStateFlow(prefManager.getLastSimSlot())
+    val lastSimSlot: StateFlow<Int> = _lastSimSlot
+
+    fun saveTransaction(recipient: String, amount: String, type: String, simSlot: Int = 1) {
         val newTransaction = Transaction(
             id = UUID.randomUUID().toString(),
             recipient = recipient,
             amount = amount,
             type = type,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            simSlot = if (simSlot == 2) 2 else 1
         )
         val updatedHistory = listOf(newTransaction) + _history.value.take(19)
         _history.value = updatedHistory
@@ -66,6 +70,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefManager.saveLastTab(index)
     }
 
+    fun saveLastSimSlot(simSlot: Int) {
+        val normalizedSlot = if (simSlot == 2) 2 else 1
+        _lastSimSlot.value = normalizedSlot
+        prefManager.saveLastSimSlot(normalizedSlot)
+    }
+
     fun clearHistory() {
         _history.value = emptyList()
         prefManager.saveHistory(emptyList())
@@ -74,9 +84,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun generateUssdCode(type: String, recipient: String, amount: String): String {
         return when (type) {
             "BANK" -> "*267#"
-            "WALLET_1" -> if (recipient.isNotEmpty() && amount.isNotEmpty()) "*268*1*$recipient*$amount#" else ""
-            "WALLET_2" -> if (recipient.isNotEmpty() && amount.isNotEmpty()) "*370*1*1*$recipient*$amount#" else ""
-            "MERCHANT" -> if (recipient.isNotEmpty() && amount.isNotEmpty()) "*268*2*$recipient*$amount#" else "" // Placeholder
+            "WALLET_1" -> "*370*1*1*$recipient*$amount#"
+            "MERCHANT_1" -> "*370*2*1*$recipient*$amount#"
+            "WALLET_2" -> "*268*1*$recipient*$amount#"
+            "MERCHANT_2" -> "*268*2*$recipient*$amount#"
             else -> ""
         }
     }

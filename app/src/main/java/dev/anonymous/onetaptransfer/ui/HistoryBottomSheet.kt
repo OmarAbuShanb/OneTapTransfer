@@ -21,7 +21,7 @@ class HistoryBottomSheet : BottomSheetDialogFragment() {
     private val viewModel: MainViewModel by activityViewModels()
     private lateinit var adapter: TransactionAdapter
 
-    var onTransactionClick: ((String, String, String) -> Unit)? = null
+    var onTransactionClick: ((String, String, String, Int) -> Unit)? = null
     var onPinTransaction: ((String, String) -> Unit)? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -36,7 +36,7 @@ class HistoryBottomSheet : BottomSheetDialogFragment() {
             onDelete = { viewModel.deleteTransaction(it.id) },
             onPin = { onPinTransaction?.invoke(it.recipient, it.type) },
             onClick = {
-                onTransactionClick?.invoke(it.recipient, it.amount, it.type)
+                onTransactionClick?.invoke(it.recipient, it.amount, it.type, it.simSlot)
                 dismiss()
             }
         )

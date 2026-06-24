@@ -10,7 +10,6 @@ import dev.anonymous.onetaptransfer.data.model.PinnedContact
 import dev.anonymous.onetaptransfer.data.model.Transaction
 import dev.anonymous.onetaptransfer.databinding.ItemTransactionBinding
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -28,7 +27,8 @@ class TransactionAdapter(
         notifyDataSetChanged()
     }
 
-    inner class ViewHolder(private val binding: ItemTransactionBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class ViewHolder(private val binding: ItemTransactionBinding) :
+        RecyclerView.ViewHolder(binding.root) {
         fun bind(item: Transaction) {
             val isPinned = pinnedMap.containsKey(item.recipient)
 
@@ -37,9 +37,9 @@ class TransactionAdapter(
             binding.tvDetails.text = "${item.amount} شيكل - ${getTypeDisplayName(item.type)}"
 
             val iconRes = when (item.type) {
-                "BANK" -> dev.anonymous.onetaptransfer.R.drawable.image1
-                "WALLET_1", "MERCHANT" -> dev.anonymous.onetaptransfer.R.drawable.image2
-                "WALLET_2" -> dev.anonymous.onetaptransfer.R.drawable.image3
+//                "BANK" -> dev.anonymous.onetaptransfer.R.drawable.image1
+                "WALLET_1", "MERCHANT_1" -> dev.anonymous.onetaptransfer.R.drawable.image2
+                "WALLET_2", "MERCHANT_2" -> dev.anonymous.onetaptransfer.R.drawable.image3
                 else -> 0
             }
             if (iconRes != 0) {
@@ -49,11 +49,18 @@ class TransactionAdapter(
                 binding.ivTypeIcon.visibility = View.GONE
             }
 
+            binding.ivSimIcon.setImageResource(
+                if (item.simSlot == 2) {
+                    dev.anonymous.onetaptransfer.R.drawable.ic_sim_2
+                } else {
+                    dev.anonymous.onetaptransfer.R.drawable.ic_sim_1
+                }
+            )
+            binding.ivSimIcon.visibility = View.VISIBLE
+
             // 12-hour format with Arabic AM/PM
-            val sdf = SimpleDateFormat("yyyy/MM/dd hh:mm", Locale.getDefault())
-            val cal = Calendar.getInstance().apply { timeInMillis = item.timestamp }
-            val amPm = if (cal.get(Calendar.AM_PM) == Calendar.AM) "صباحاً" else "مساءً"
-            binding.tvDate.text = "${sdf.format(Date(item.timestamp))} $amPm"
+            val sdf = SimpleDateFormat("hh:mm a yyyy/MM/dd", Locale.getDefault())
+            binding.tvDate.text = sdf.format(Date(item.timestamp)).toString()
 
             binding.ivDelete.setOnClickListener { onDelete(item) }
 
@@ -68,17 +75,16 @@ class TransactionAdapter(
     companion object {
         fun getTypeDisplayName(type: String): String {
             return when (type) {
-                "BANK" -> "بنك"
-                "WALLET_1" -> "محفظة ١"
-                "MERCHANT" -> "تاجر"
-                "WALLET_2" -> "محفظة ٢"
+                "WALLET_1", "WALLET_2", "BANK" -> "دفع لصديق"
+                "MERCHANT_1", "MERCHANT_2" -> "دفع لتاجر"
                 else -> type
             }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemTransactionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        val binding =
+            ItemTransactionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return ViewHolder(binding)
     }
 
@@ -87,7 +93,10 @@ class TransactionAdapter(
     }
 
     object DiffCallback : DiffUtil.ItemCallback<Transaction>() {
-        override fun areItemsTheSame(oldItem: Transaction, newItem: Transaction) = oldItem.id == newItem.id
-        override fun areContentsTheSame(oldItem: Transaction, newItem: Transaction) = oldItem == newItem
+        override fun areItemsTheSame(oldItem: Transaction, newItem: Transaction) =
+            oldItem.id == newItem.id
+
+        override fun areContentsTheSame(oldItem: Transaction, newItem: Transaction) =
+            oldItem == newItem
     }
 }

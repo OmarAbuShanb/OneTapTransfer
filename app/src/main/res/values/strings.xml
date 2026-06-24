@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">حول بكبسة زر</string>
-    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="app_name">حوّل بكبسة زر</string>
+    <string name="privacy_policy">سياسة الخصوصية والأمان</string>
 
-    <string name="tab_bank_friend">بنكي دفع لصديق</string>
-    <string name="tab_wallet_friend_1">دفع لصديق محفظة</string>
-    <string name="tab_wallet_merchant">دفع لتاجر محفظة</string>
-    <string name="tab_wallet_friend_2">دفع لصديق محفظة</string>
+    <string name="tab_wallet_friend_1">دفع لصديق محفظة 1</string>
+    <string name="tab_wallet_merchant_1">دفع لتاجر محفظة 1</string>
+    <string name="tab_wallet_friend_2">دفع لصديق محفظة 2</string>
+    <string name="tab_wallet_merchant_2">دفع لتاجر محفظة 2</string>
 
     <string name="recipient_number">رقم المستلم</string>
     <string name="amount">المبلغ</string>
@@ -15,6 +15,8 @@
     <string name="btn_call">اتصال</string>
     <string name="btn_transfer">انتقال</string>
     <string name="btn_copy">نسخ الكود</string>
+    <string name="sim_1_default">الشريحة 1</string>
+    <string name="sim_2_default">الشريحة 2</string>
 
     <string name="pinned_contacts">المثبتون</string>
     <string name="recent_transactions">آخر ١٠ حركات</string>
@@ -26,11 +28,14 @@
     <string name="error_invalid_phone">رقم هاتف غير صالح</string>
     <string name="error_invalid_amount">يجب أن يكون المبلغ بين 1 و 999</string>
     <string name="error_no_dialer">لا يوجد تطبيق اتصال مدعوم لإجراء المكالمة</string>
+    <string name="error_direct_call_unavailable">تعذر بدء الاتصال المباشر عبر الشريحة المحددة</string>
     <string name="msg_copied">تم نسخ الكود بنجاح</string>
     <string name="permission_call_denied">صلاحية الاتصال مرفوضة</string>
+    <string name="permission_direct_call_title">صلاحيات الاتصال المباشر</string>
+    <string name="permission_direct_call_message">صلاحية الاتصال وقراءة حالة الهاتف ضرورية فقط عند استخدام الاتصال المباشر، حتى يتمكن التطبيق من إجراء الاتصال بدون فتح تطبيق اتصال وسيط واختيار الشريحة المناسبة. إذا رفضت الصلاحية سابقاً، يمكنك السماح بها من خلال إعدادات التطبيق.</string>
 
     <string name="privacy_title">سياسة الخصوصية والأمان</string>
-    <string name="privacy_content">هذا التطبيق أداة غير رسمية، تم تطويره بهدف تسهيل عملية إجراء التحويلات المالية عبر أكواد USSD. يعتمد التطبيق على الواجهة الرسمية لنظام التشغيل لطلب الأكواد، ولا يملك أي صلاحية للوصول إلى البيانات التي تُدخلها أو الخيارات التي تُجريها أثناء المكالمة.\n\nلمزيد من المعلومات حول آلية عمل واجهة USSD في نظام أندرويد، يمكنك الاطلاع على &lt;a href=\"https://developer.android.com/guide/topics/connectivity/telephony\">التوثيق الرسمي من Google&lt;/a>.\n\nلا يقوم التطبيق بمشاركة أي بيانات مع أي جهة خارجية، ولا يمتلك صلاحية الوصول إلى الإنترنت أو العمل في الخلفية.\n\nلا يصل التطبيق إلى جهات الاتصال بشكل مباشر، بل يتيح لك اختيار جهة الاتصال التي تريدها فقط عبر &lt;a href=\"https://developer.android.com/training/contacts-provider/modify-data\">الواجهة الرسمية المقدّمة من النظام&lt;/a>.\n\nالمشروع مفتوح المصدر ومتاح للمراجعة على &lt;a href=\"https://github.com/omar-shanab/OneTapTransfer\">GitHub&lt;/a>.\n\nهذا التطبيق حلٌّ مؤقت إلى أن تُوفّر التطبيقات الرسمية خياراً يُسهّل على المستخدمين إجراء عمليات التحويل بسرعة وأمان.</string>
+    <string name="privacy_content">هذا التطبيق أداة غير رسمية، ولا يتبع لأي جهة أو مؤسسة، وقد تم تطويره بهدف تسهيل إجراء التحويلات المالية عبر أكواد USSD.\nيعتمد التطبيق على الواجهة الرسمية لنظام التشغيل لطلب الأكواد.\nولا يملك أي صلاحية للوصول إلى البيانات التي تُدخلها أو الخيارات التي تُجريها أثناء المكالمة.\n\nلا يقوم التطبيق بمشاركة أي بيانات مع أي جهة خارجية.\nولا يمتلك صلاحية الوصول إلى الإنترنت أو العمل في الخلفية.\n\nلا يصل التطبيق إلى جهات الاتصال بشكل مباشر.\nبل يتيح لك اختيار جهة الاتصال التي تريدها فقط عبر &lt;a href=\"https://developer.android.com/about/versions/17/features/contact-picker\">الواجهة الرسمية المقدّمة من النظام&lt;/a>.\n\nالمشروع مفتوح المصدر ومتاح للمراجعة على &lt;a href=\"https://github.com/OmarAbuShanb/OneTapTransfer\">GitHub&lt;/a>.\n\nهذا التطبيق حل مؤقت إلى أن تنتهي هذه الأزمة، ونسأل الله أن يرفع عنا هذه الغمة.</string>
     <string name="btn_close">إغلاق</string>
     <string name="pin_contact_dialog_title">تثبيت جهة الاتصال</string>
     <string name="pin_contact_number_value">الرقم: %1$s</string>

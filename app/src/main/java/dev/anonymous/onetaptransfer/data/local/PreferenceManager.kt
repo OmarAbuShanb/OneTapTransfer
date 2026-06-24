@@ -17,6 +17,7 @@ class PreferenceManager(context: Context) {
         private const val KEY_HISTORY = "history"
         private const val KEY_PINNED = "pinned"
         private const val KEY_LAST_TAB = "last_tab"
+        private const val KEY_LAST_SIM_SLOT = "last_sim_slot"
     }
 
     fun saveHistory(history: List<Transaction>) {
@@ -27,7 +28,9 @@ class PreferenceManager(context: Context) {
     fun getHistory(): List<Transaction> {
         val json = prefs.getString(KEY_HISTORY, null) ?: return emptyList()
         val type = object : TypeToken<List<Transaction>>() {}.type
-        return gson.fromJson(json, type)
+        return gson.fromJson<List<Transaction>>(json, type).map { transaction ->
+            if (transaction.simSlot in 1..2) transaction else transaction.copy(simSlot = 1)
+        }
     }
 
     fun savePinnedContacts(contacts: List<PinnedContact>) {
@@ -46,6 +49,14 @@ class PreferenceManager(context: Context) {
     }
 
     fun getLastTab(): Int {
-        return prefs.getInt(KEY_LAST_TAB, 1) // Default to Wallet 1 as per requirements
+        return prefs.getInt(KEY_LAST_TAB, 0)
+    }
+
+    fun saveLastSimSlot(simSlot: Int) {
+        prefs.edit { putInt(KEY_LAST_SIM_SLOT, if (simSlot == 2) 2 else 1) }
+    }
+
+    fun getLastSimSlot(): Int {
+        return prefs.getInt(KEY_LAST_SIM_SLOT, 1).let { if (it == 2) 2 else 1 }
     }
 }

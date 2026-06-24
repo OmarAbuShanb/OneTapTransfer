@@ -55,26 +55,26 @@
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:icon="@drawable/image1"
-                    android:text="@string/tab_bank_friend" />
-
-                <com.google.android.material.tabs.TabItem
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:icon="@drawable/image3"
+                    android:icon="@drawable/image2"
                     android:text="@string/tab_wallet_friend_1" />
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:icon="@drawable/image3"
-                    android:text="@string/tab_wallet_merchant" />
+                    android:icon="@drawable/image2"
+                    android:text="@string/tab_wallet_merchant_1" />
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:icon="@drawable/image2"
+                    android:icon="@drawable/image3"
                     android:text="@string/tab_wallet_friend_2" />
+
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:icon="@drawable/image3"
+                    android:text="@string/tab_wallet_merchant_2" />
 
             </com.google.android.material.tabs.TabLayout>
 
@@ -149,6 +149,46 @@
                         android:textDirection="ltr"
                         android:textSize="16sp"
                         android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/simToggleGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:visibility="gone"
+                        app:checkedButton="@id/btnSim1"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSim1"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/sim_1_default"
+                            android:textColor="@color/text_main"
+                            app:icon="@drawable/ic_sim_1"
+                            app:iconGravity="textStart"
+                            app:iconTint="@color/text_sub" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSim2"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/sim_2_default"
+                            android:textColor="@color/text_main"
+                            app:icon="@drawable/ic_sim_2"
+                            app:iconGravity="textStart"
+                            app:iconTint="@color/text_sub" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
 
                     <LinearLayout
                         android:layout_width="match_parent"

@@ -44,14 +44,22 @@
                     android:layout_height="wrap_content"
                     android:text="١٠٠ شيكل - محفظة ١"
                     android:textColor="@color/history_item_text_sub"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
 
                 <ImageView
                     android:id="@+id/ivTypeIcon"
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:layout_marginStart="4dp"
-                    android:src="@drawable/image1" />
+                    android:src="@drawable/image2" />
+
+                <ImageView
+                    android:id="@+id/ivSimIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_sim_1"
+                    app:tint="@color/history_item_text_sub" />
             </LinearLayout>
 
         </LinearLayout>
@@ -68,7 +76,7 @@
             android:id="@+id/ivDelete"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:padding="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_delete"
@@ -78,7 +86,6 @@
             android:id="@+id/ivPin"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginStart="4dp"
             android:padding="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_pin"

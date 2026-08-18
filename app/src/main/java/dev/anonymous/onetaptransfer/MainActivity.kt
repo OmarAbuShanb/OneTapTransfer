@@ -4,11 +4,12 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.content.res.Configuration
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.ContactsContract
 import android.telecom.PhoneAccount
 import android.telecom.PhoneAccountHandle
@@ -18,9 +19,13 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.text.Editable
 import android.text.TextWatcher
+import android.transition.ChangeBounds
+import android.transition.Fade
+import android.transition.TransitionManager
+import android.transition.TransitionSet
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
@@ -28,9 +33,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -43,10 +51,9 @@ import dev.anonymous.onetaptransfer.ui.PinContactDialogFragment
 import dev.anonymous.onetaptransfer.ui.PinnedContactAdapter
 import dev.anonymous.onetaptransfer.ui.PrivacyPolicyDialog
 import dev.anonymous.onetaptransfer.ui.TransactionAdapter
+import dev.anonymous.onetaptransfer.ui.WhatsNewDialog
 import dev.anonymous.onetaptransfer.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.net.toUri
 
 class MainActivity : AppCompatActivity() {
 
@@ -61,6 +68,8 @@ class MainActivity : AppCompatActivity() {
     private var didApplyInitialFocus = false
     private var skipNextSimSelectorRefresh = false
     private var isUpdatingSimSelection = false
+    private var isContactPickerLaunching = false
+    private var lastContactPickerClickTime = 0L
 
     /** Cached reference to InputMethodManager to avoid repeated getSystemService calls. */
     private val imm: InputMethodManager by lazy {
@@ -102,6 +111,7 @@ class MainActivity : AppCompatActivity() {
     // region Activity Result Launchers
 
     private val contactPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        isContactPickerLaunching = false
         if (result.resultCode == RESULT_OK) {
             result.data?.data?.let { handleContactResult(it) }
         }
@@ -134,10 +144,30 @@ class MainActivity : AppCompatActivity() {
         setupUI()
         setupFragmentResultListeners()
         observeViewModel()
+        checkAppUpdateNotice()
+    }
+
+    private fun checkAppUpdateNotice() {
+        val currentVersionCode = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0).versionCode
+            }
+        } catch (_: Exception) {
+            1
+        }
+        if (viewModel.checkAppUpdate(currentVersionCode)) {
+            binding.root.post {
+                WhatsNewDialog.newInstance().show(supportFragmentManager, "whats_new")
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        isContactPickerLaunching = false
         if (skipNextSimSelectorRefresh) {
             skipNextSimSelectorRefresh = false
             return
@@ -189,10 +219,28 @@ class MainActivity : AppCompatActivity() {
         setupTabs()
         setupSimSelector()
         setupInputWatchers()
+        setupQuickTransfer()
         setupContactPicker()
         setupActionButtons()
         setupHistoryButton()
         setupPrivacyPolicy()
+    }
+
+    private fun animateInputCardChange() {
+        val transition = TransitionSet().apply {
+            ordering = TransitionSet.ORDERING_TOGETHER
+            addTransition(ChangeBounds().apply {
+                duration = 250
+                interpolator = FastOutSlowInInterpolator()
+            })
+            addTransition(Fade(Fade.OUT).apply {
+                duration = 150
+            })
+            addTransition(Fade(Fade.IN).apply {
+                duration = 250
+            })
+        }
+        TransitionManager.beginDelayedTransition(binding.inputContainer, transition)
     }
 
     private fun setupRecyclerViews() {
@@ -224,8 +272,6 @@ class MainActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        // Fix tab text truncation: TabLayout internally forces ellipsize
-        // on TextViews, so we override it programmatically after layout.
         binding.tabLayout.post {
             val slidingTabStrip = binding.tabLayout.getChildAt(0) as? android.view.ViewGroup ?: return@post
             for (i in 0 until slidingTabStrip.childCount) {
@@ -310,10 +356,88 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupQuickTransfer() {
+        binding.switchQuickTransfer.isChecked = viewModel.isQuickTransferEnabled.value
+
+        binding.switchQuickTransfer.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setQuickTransferEnabled(isChecked)
+            animateInputCardChange()
+            updateQuickTransferVisibility()
+            updateUssdPreview()
+        }
+
+        // Remove previous btnSaveEditPin handling
+        // pinLayout now has a start icon (save) that triggers save action when editing
+        binding.pinLayout.setStartIconOnClickListener {
+            if (viewModel.isPinEditing.value) {
+                val pin = binding.etQuickPin.text.toString().trim()
+                if (pin.length != 4) {
+                    binding.pinLayout.error = getString(R.string.error_invalid_pin)
+                    return@setStartIconOnClickListener
+                }
+                binding.pinLayout.error = null
+                viewModel.saveQuickTransferPin(pin)
+                hideKeyboardAndClearInputFocus()
+                Toast.makeText(this, R.string.msg_pin_saved, Toast.LENGTH_SHORT).show()
+                updateUssdPreview()
+                // Switch to edit mode after saving
+                viewModel.setPinEditing(false)
+            } else {
+                // Enter edit mode
+                viewModel.setPinEditing(true)
+                binding.etQuickPin.requestFocus()
+                binding.etQuickPin.setSelection(binding.etQuickPin.text?.length ?: 0)
+                imm.showSoftInput(binding.etQuickPin, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+
+        binding.etQuickPin.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.pinLayout.error = null
+                updateUssdPreview()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        updateQuickTransferVisibility()
+    }
+
+    private fun updateQuickTransferVisibility() {
+        val isJawwalPay = currentType == "WALLET_2" || currentType == "MERCHANT_2"
+        val isQuickEnabled = viewModel.isQuickTransferEnabled.value
+
+        if (isJawwalPay) {
+            binding.quickTransferContainer.visibility = View.VISIBLE
+            if (isQuickEnabled) {
+                binding.pinLayout.visibility = View.VISIBLE
+                binding.warningCard.visibility = View.VISIBLE
+            } else {
+                binding.pinLayout.visibility = View.GONE
+                binding.warningCard.visibility = View.GONE
+            }
+        } else {
+            binding.quickTransferContainer.visibility = View.GONE
+            binding.warningCard.visibility = View.GONE
+        }
+    }
+
     private fun setupContactPicker() {
         binding.recipientLayout.setEndIconOnClickListener {
+            if (isContactPickerLaunching) return@setEndIconOnClickListener
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastContactPickerClickTime < 800) return@setEndIconOnClickListener
+            lastContactPickerClickTime = now
+
+            isContactPickerLaunching = true
+            hideKeyboardAndClearInputFocus()
+
             val pickPhoneIntent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-            contactPickerLauncher.launch(pickPhoneIntent)
+            try {
+                contactPickerLauncher.launch(pickPhoneIntent)
+            } catch (_: Exception) {
+                isContactPickerLaunching = false
+            }
         }
     }
 
@@ -340,13 +464,20 @@ class MainActivity : AppCompatActivity() {
         binding.toolbar.inflateMenu(R.menu.main_menu)
         binding.toolbar.overflowIcon?.setTint(ContextCompat.getColor(this, R.color.text_main))
         binding.tvPrivacyBottom.setOnClickListener {
-            PrivacyPolicyDialog().show(supportFragmentManager, "privacy")
+            PrivacyPolicyDialog.newInstance().show(supportFragmentManager, "privacy")
         }
-        binding.toolbar.setOnMenuItemClickListener {
-            if (it.itemId == R.id.action_privacy) {
-                PrivacyPolicyDialog().show(supportFragmentManager, "privacy")
-                true
-            } else false
+        binding.toolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_whats_new -> {
+                    WhatsNewDialog.newInstance().show(supportFragmentManager, "whats_new")
+                    true
+                }
+                R.id.action_privacy -> {
+                    PrivacyPolicyDialog.newInstance().show(supportFragmentManager, "privacy")
+                    true
+                }
+                else -> false
+            }
         }
     }
 
@@ -375,9 +506,6 @@ class MainActivity : AppCompatActivity() {
                             if (currentType == "BANK") {
                                 hideKeyboardAndClearInputFocus()
                             } else {
-                                // Use a longer delay on initial launch because the
-                                // window may not have gained focus yet, causing
-                                // showSoftInput to silently fail.
                                 binding.etRecipient.postDelayed({
                                     focusRecipient()
                                 }, 350)
@@ -393,6 +521,41 @@ class MainActivity : AppCompatActivity() {
                         binding.tvNoRecentTransactions.visibility = if (hasHistory) View.GONE else View.VISIBLE
                     }
                 }
+                launch {
+                    viewModel.isQuickTransferEnabled.collect { isEnabled ->
+                        if (binding.switchQuickTransfer.isChecked != isEnabled) {
+                            binding.switchQuickTransfer.isChecked = isEnabled
+                        }
+                        updateQuickTransferVisibility()
+                        updateUssdPreview()
+                    }
+                }
+                launch {
+                    viewModel.quickTransferPin.collect { pin ->
+                        if (!viewModel.isPinEditing.value) {
+                            if (binding.etQuickPin.text.toString() != pin) {
+                                binding.etQuickPin.setText(pin)
+                            }
+                        }
+                        updateUssdPreview()
+                    }
+                }
+                launch {
+                    viewModel.isPinEditing.collect { isEditing ->
+                        binding.etQuickPin.isEnabled = isEditing
+                        binding.etQuickPin.isFocusable = isEditing
+                        binding.etQuickPin.isFocusableInTouchMode = isEditing
+                        if (isEditing) {
+                            binding.pinLayout.endIconMode = com.google.android.material.textfield.TextInputLayout.END_ICON_PASSWORD_TOGGLE
+                            binding.pinLayout.startIconDrawable = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_save)
+                            binding.pinLayout.setStartIconTintList(ContextCompat.getColorStateList(this@MainActivity, R.color.text_main))
+                        } else {
+                            binding.pinLayout.startIconDrawable = ContextCompat.getDrawable(this@MainActivity, R.drawable.ic_edit)
+                            binding.pinLayout.setStartIconTintList(ContextCompat.getColorStateList(this@MainActivity, R.color.text_main))
+                        }
+                        updateUssdPreview()
+                    }
+                }
             }
         }
     }
@@ -405,15 +568,20 @@ class MainActivity : AppCompatActivity() {
         viewModel.saveLastTab(position)
         currentType = tabIndexToType(position)
 
+        animateInputCardChange()
+
         if (currentType == "BANK") {
             binding.recipientLayout.visibility = View.GONE
             binding.amountLayout.visibility = View.GONE
+            binding.quickTransferContainer.visibility = View.GONE
+            binding.warningCard.visibility = View.GONE
             hideKeyboardAndClearInputFocus()
             val bankCode = viewModel.generateUssdCode(currentType, "", "")
             binding.tvUssdPreview.text = formatUssdForDisplay(bankCode)
         } else {
             binding.recipientLayout.visibility = View.VISIBLE
             binding.amountLayout.visibility = View.VISIBLE
+            updateQuickTransferVisibility()
             updateUssdPreview()
         }
     }
@@ -433,7 +601,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val code = viewModel.generateUssdCode(currentType, recipient, amount)
+        val isJawwalPay = currentType == "WALLET_2" || currentType == "MERCHANT_2"
+        val pinOverride = if (isJawwalPay && viewModel.isPinEditing.value) binding.etQuickPin.text.toString().trim() else null
+
+        val code = viewModel.generateUssdCode(currentType, recipient, amount, pinOverride = pinOverride)
         binding.tvUssdPreview.text = if (code.isEmpty()) {
             getString(R.string.ussd_preview_hint)
         } else {
@@ -445,14 +616,10 @@ class MainActivity : AppCompatActivity() {
 
     // region Action Handling
 
-    /**
-     * Validates that the current inputs (recipient + amount) are valid for the active tab.
-     * Bank tab always passes validation since it doesn't require inputs.
-     * @return true if inputs are valid, false otherwise (shows a Snackbar on failure).
-     */
     private fun validateInputs(recipient: String, amount: String): Boolean {
         binding.recipientLayout.error = null
         binding.amountLayout.error = null
+        binding.pinLayout.error = null
 
         if (currentType == "BANK") return true
 
@@ -469,6 +636,19 @@ class MainActivity : AppCompatActivity() {
             isValid = false
         }
 
+        val isJawwalPay = currentType == "WALLET_2" || currentType == "MERCHANT_2"
+        if (isJawwalPay && viewModel.isQuickTransferEnabled.value) {
+            val currentPin = if (viewModel.isPinEditing.value) {
+                binding.etQuickPin.text.toString().trim()
+            } else {
+                viewModel.quickTransferPin.value
+            }
+            if (currentPin.length != 4) {
+                binding.pinLayout.error = getString(R.string.error_invalid_pin)
+                isValid = false
+            }
+        }
+
         return isValid
     }
 
@@ -482,7 +662,10 @@ class MainActivity : AppCompatActivity() {
             hideKeyboardAndClearInputFocus()
         }
 
-        val code = viewModel.generateUssdCode(currentType, recipient, amount)
+        val isJawwalPay = currentType == "WALLET_2" || currentType == "MERCHANT_2"
+        val pinOverride = if (isJawwalPay && viewModel.isPinEditing.value) binding.etQuickPin.text.toString().trim() else null
+
+        val code = viewModel.generateUssdCode(currentType, recipient, amount, pinOverride = pinOverride)
 
         when (action) {
             "CALL" -> checkCallPermissionAndMakeCall()
@@ -551,7 +734,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val code = viewModel.generateUssdCode(currentType, recipient, amount)
+        val isJawwalPay = currentType == "WALLET_2" || currentType == "MERCHANT_2"
+        val pinOverride = if (isJawwalPay && viewModel.isPinEditing.value) binding.etQuickPin.text.toString().trim() else null
+
+        val code = viewModel.generateUssdCode(currentType, recipient, amount, pinOverride = pinOverride)
         val encodedCode = Uri.encode(code)
         val phoneUri = "tel:$encodedCode".toUri()
         val callExtras = Bundle().apply {
@@ -801,14 +987,7 @@ class MainActivity : AppCompatActivity() {
 
     // region Input & Focus Management
 
-    /**
-     * Fills the input fields with the given values, optionally switches to the correct tab,
-     * and scrolls to the top of the page.
-     *
-     * @param type If non-null, switches to the tab corresponding to this transaction type.
-     */
     private fun fillInputs(recipient: String, amount: String, type: String? = null, simSlot: Int? = null) {
-        // Switch tab if type is specified
         if (type != null) {
             val tabIndex = typeToTabIndex(type)
             binding.tabLayout.getTabAt(tabIndex)?.select()
@@ -825,10 +1004,8 @@ class MainActivity : AppCompatActivity() {
 
         updateUssdPreview()
 
-        // Scroll to top so user can see the input fields and preview
         binding.scrollView.smoothScrollTo(0, 0)
 
-        // If amount is empty, focus on amount field for quick entry
         if (currentType != "BANK" && amount.isEmpty()) {
             focusAmountDelayed()
         }
@@ -856,6 +1033,7 @@ class MainActivity : AppCompatActivity() {
     private fun hideKeyboardAndClearInputFocus() {
         binding.etRecipient.clearFocus()
         binding.etAmount.clearFocus()
+        binding.etQuickPin.clearFocus()
         binding.main.isFocusableInTouchMode = true
         binding.main.requestFocus()
 
@@ -869,22 +1047,18 @@ class MainActivity : AppCompatActivity() {
         imm.showSoftInput(binding.etRecipient, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    /** Focuses the amount field and opens the keyboard. Uses a small delay to ensure layout is ready. */
     private fun focusAmount() {
         if (binding.amountLayout.visibility != View.VISIBLE) return
         binding.etAmount.requestFocus()
         imm.showSoftInput(binding.etAmount, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    /** Focuses amount field with a delay — useful after layout changes (e.g., tab switch, contact pick). */
     private fun focusAmountDelayed() {
         binding.etAmount.postDelayed({
             binding.etAmount.requestFocus()
             imm.showSoftInput(binding.etAmount, InputMethodManager.SHOW_IMPLICIT)
         }, 150)
     }
-
-    // endregion
 
     // endregion
 }

@@ -25,4 +25,8 @@
     <color name="history_item_text_sub">#A8A8A8</color>
     <color name="error">#FF453A</color>
     <color name="success">#1F8A4C</color>
+    <color name="warning_yellow">#FBBF24</color>
+    <color name="warning_bg">#291E03</color>
+    <color name="warning_border">#78350F</color>
+    <color name="warning_text">#FDE68A</color>
 </resources>

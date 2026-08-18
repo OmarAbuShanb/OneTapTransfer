@@ -49,4 +49,17 @@
     <string name="no_history">لا توجد عمليات سابقة</string>
     <string name="no_pinned_contacts">لا يوجد جهات مثبتة بعد</string>
     <string name="no_recent_transactions">لا توجد عمليات تحويل بعد</string>
+
+    <string name="quick_transfer_title">الدفع السريع (إختياري - يتطلب الرمز السري)</string>
+    <string name="quick_transfer_pin_hint">الرمز السري (4 أرقام)</string>
+    <string name="quick_transfer_warning">تنبيه: يرجى التأكد من رقم المستلم والمبلغ، حيث ستُنفذ عملية التحويل مباشرة بمجرد الاتصال ولن يُطلب منك تأكيد العملية بعد الاتصال.</string>
+
+    <string name="action_whats_new">ما الجديد في هذا التحديث</string>
+    <string name="whats_new_title">ما الجديد في هذا التحديث</string>
+    <string name="whats_new_content"><![CDATA[<b>١. تصحيح كود الدفع لتاجر، محفظة ١.</b><br/><br/><b>٢. إضافة خيار الدفع السريع المباشر، محفظة ٢:</b><br/>• يتضمن الكود المختصر الرمز السري والتأكيد التلقائي، لتبدأ عملية التحويل وتكتمل مباشرة بمجرد الاتصال.<br/>• يمكنك حفظ الرمز السري بدلاً من كتابته في كل مرة من خلال الضغط على أيقونة الحفظ، كما يمكنك تعديله في أي وقت لاحق بالضغط على أيقونة التعديل.]]></string>
+
+    <string name="msg_pin_saved">تم حفظ الرمز السري بنجاح</string>
+    <string name="error_invalid_pin">الرمز السري يجب أن يتكون من 4 أرقام</string>
+    <string name="btn_save">حفظ</string>
+    <string name="btn_edit">تعديل</string>
 </resources>

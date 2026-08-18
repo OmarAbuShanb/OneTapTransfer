@@ -18,6 +18,9 @@ class PreferenceManager(context: Context) {
         private const val KEY_PINNED = "pinned"
         private const val KEY_LAST_TAB = "last_tab"
         private const val KEY_LAST_SIM_SLOT = "last_sim_slot"
+        private const val KEY_QUICK_TRANSFER_ENABLED = "quick_transfer_enabled"
+        private const val KEY_QUICK_TRANSFER_PIN = "quick_transfer_pin"
+        private const val KEY_VERSION_CODE = "app_version_code"
     }
 
     fun saveHistory(history: List<Transaction>) {
@@ -58,5 +61,27 @@ class PreferenceManager(context: Context) {
 
     fun getLastSimSlot(): Int {
         return prefs.getInt(KEY_LAST_SIM_SLOT, 1).let { if (it == 2) 2 else 1 }
+    }
+
+    fun saveQuickTransferEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_QUICK_TRANSFER_ENABLED, enabled) }
+    }
+
+    fun isQuickTransferEnabled(): Boolean {
+        return prefs.getBoolean(KEY_QUICK_TRANSFER_ENABLED, false)
+    }
+
+    fun saveQuickTransferPin(pin: String) {
+        prefs.edit { putString(KEY_QUICK_TRANSFER_PIN, pin) }
+    }
+
+    fun getQuickTransferPin(): String {
+        return prefs.getString(KEY_QUICK_TRANSFER_PIN, "").orEmpty()
+    }
+
+    fun isAppUpdated(currentVersionCode: Int): Boolean {
+        val lastVersionCode = prefs.getInt(KEY_VERSION_CODE, -1)
+        prefs.edit { putInt(KEY_VERSION_CODE, currentVersionCode) }
+        return lastVersionCode != -1 && currentVersionCode > lastVersionCode
     }
 }

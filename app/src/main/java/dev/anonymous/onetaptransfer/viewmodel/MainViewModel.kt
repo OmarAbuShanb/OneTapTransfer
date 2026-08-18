@@ -25,6 +25,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastSimSlot = MutableStateFlow(prefManager.getLastSimSlot())
     val lastSimSlot: StateFlow<Int> = _lastSimSlot
 
+    private val _isQuickTransferEnabled = MutableStateFlow(prefManager.isQuickTransferEnabled())
+    val isQuickTransferEnabled: StateFlow<Boolean> = _isQuickTransferEnabled
+
+    private val _quickTransferPin = MutableStateFlow(prefManager.getQuickTransferPin())
+    val quickTransferPin: StateFlow<String> = _quickTransferPin
+
+    private val _isPinEditing = MutableStateFlow(prefManager.getQuickTransferPin().length != 4)
+    val isPinEditing: StateFlow<Boolean> = _isPinEditing
+
     fun saveTransaction(recipient: String, amount: String, type: String, simSlot: Int = 1) {
         val newTransaction = Transaction(
             id = UUID.randomUUID().toString(),
@@ -76,18 +85,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefManager.saveLastSimSlot(normalizedSlot)
     }
 
+    fun setQuickTransferEnabled(enabled: Boolean) {
+        _isQuickTransferEnabled.value = enabled
+        prefManager.saveQuickTransferEnabled(enabled)
+    }
+
+    fun saveQuickTransferPin(pin: String) {
+        _quickTransferPin.value = pin
+        prefManager.saveQuickTransferPin(pin)
+        if (pin.length == 4) {
+            _isPinEditing.value = false
+        }
+    }
+
+    fun setPinEditing(isEditing: Boolean) {
+        _isPinEditing.value = isEditing
+    }
+
+    fun checkAppUpdate(currentVersionCode: Int): Boolean {
+        return prefManager.isAppUpdated(currentVersionCode)
+    }
+
     fun clearHistory() {
         _history.value = emptyList()
         prefManager.saveHistory(emptyList())
     }
 
-    fun generateUssdCode(type: String, recipient: String, amount: String): String {
+    fun generateUssdCode(
+        type: String,
+        recipient: String,
+        amount: String,
+        pinOverride: String? = null,
+        isQuickOverride: Boolean? = null
+    ): String {
+        val isQuick = isQuickOverride ?: _isQuickTransferEnabled.value
+        val pin = (pinOverride ?: _quickTransferPin.value).trim()
+
         return when (type) {
             "BANK" -> "*267#"
             "WALLET_1" -> "*370*1*1*$recipient*$amount#"
-            "MERCHANT_1" -> "*370*2*1*$recipient*$amount#"
-            "WALLET_2" -> "*268*1*$recipient*$amount#"
-            "MERCHANT_2" -> "*268*2*$recipient*$amount#"
+            "MERCHANT_1" -> "*370*2*$recipient*$amount#"
+            "WALLET_2" -> {
+                if (isQuick) {
+                    if (pin.length == 4) "*110*1*$pin*$recipient*$amount*1#" else ""
+                } else {
+                    "*268*1*$recipient*$amount#"
+                }
+            }
+            "MERCHANT_2" -> {
+                if (isQuick) {
+                    if (pin.length == 4) "*110*2*$pin*$recipient*$amount*1#" else ""
+                } else {
+                    "*268*2*$recipient*$amount#"
+                }
+            }
             else -> ""
         }
     }

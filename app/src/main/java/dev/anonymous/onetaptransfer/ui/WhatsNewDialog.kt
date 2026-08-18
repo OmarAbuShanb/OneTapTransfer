@@ -3,18 +3,18 @@ package dev.anonymous.onetaptransfer.ui
 import android.os.Bundle
 import dev.anonymous.onetaptransfer.R
 
-class PrivacyPolicyDialog : InfoDialogFragment() {
+class WhatsNewDialog : InfoDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         if (arguments == null) {
             arguments = Bundle().apply {
-                putInt("title_res", R.string.privacy_title)
-                putInt("content_res", R.string.privacy_content)
+                putInt("title_res", R.string.whats_new_title)
+                putInt("content_res", R.string.whats_new_content)
             }
         }
         super.onCreate(savedInstanceState)
     }
 
     companion object {
-        fun newInstance(): PrivacyPolicyDialog = PrivacyPolicyDialog()
+        fun newInstance(): WhatsNewDialog = WhatsNewDialog()
     }
 }

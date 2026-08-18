@@ -45,11 +45,11 @@
                 android:layout_height="wrap_content"
                 android:background="@android:color/transparent"
                 app:tabGravity="fill"
+                app:tabIconTint="@null"
                 app:tabIndicatorColor="@color/secondary"
                 app:tabMode="fixed"
-                app:tabIconTint="@null"
-                app:tabTextAppearance="@style/TabTextAppearance"
                 app:tabSelectedTextColor="@color/secondary"
+                app:tabTextAppearance="@style/TabTextAppearance"
                 app:tabTextColor="@color/text_sub">
 
                 <com.google.android.material.tabs.TabItem
@@ -92,8 +92,50 @@
                     android:id="@+id/inputContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:animateLayoutChanges="true"
                     android:orientation="vertical"
                     android:padding="16dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/warningCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:visibility="gone"
+                        app:cardBackgroundColor="@color/warning_bg"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/warning_border"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginEnd="8dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_warning"
+                                app:tint="@color/warning_yellow" />
+
+                            <TextView
+                                android:id="@+id/tvWarningMessage"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/quick_transfer_warning"
+                                android:textColor="@color/warning_text"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/recipientLayout"
@@ -133,6 +175,53 @@
                             android:textColorHint="@color/text_input_placeholder" />
 
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <LinearLayout
+                        android:id="@+id/quickTransferContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:animateLayoutChanges="true"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchQuickTransfer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/quick_transfer_title"
+                            android:textColor="@color/text_main"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:thumbTint="@color/switch_thumb_tint"
+                            app:trackTint="@color/switch_track_tint" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/pinLayout"
+                            style="@style/Widget.OneTapTransfer.TextInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:hint="@string/quick_transfer_pin_hint"
+                            android:visibility="gone"
+                            app:endIconMode="password_toggle"
+                            app:endIconTint="@color/text_sub"
+                            app:startIconDrawable="@drawable/ic_save"
+                            app:startIconTint="@color/text_main">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etQuickPin"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionDone"
+                                android:inputType="numberPassword"
+                                android:maxLength="4"
+                                android:textColor="@color/text_main"
+                                android:textColorHint="@color/text_input_placeholder" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tvUssdPreview"
@@ -191,43 +280,43 @@
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
                     <LinearLayout
+                        style="?android:attr/buttonBarStyle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:orientation="horizontal"
-                        style="?android:attr/buttonBarStyle">
+                        android:orientation="horizontal">
 
                         <Button
                             android:id="@+id/btnCall"
+                            style="?android:attr/buttonBarButtonStyle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:layout_marginHorizontal="4dp"
+                            android:layout_weight="1"
                             android:text="@string/btn_call"
                             android:textColor="@color/white"
-                            style="?android:attr/buttonBarButtonStyle"
                             app:backgroundTint="@color/button_call_bg" />
 
                         <Button
                             android:id="@+id/btnTransfer"
+                            style="?android:attr/buttonBarButtonStyle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:layout_marginHorizontal="4dp"
+                            android:layout_weight="1"
                             android:text="@string/btn_transfer"
                             android:textColor="@color/white"
-                            style="?android:attr/buttonBarButtonStyle"
                             app:backgroundTint="@color/button_transfer_bg" />
 
                         <Button
                             android:id="@+id/btnCopy"
+                            style="?android:attr/buttonBarButtonStyle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:layout_marginHorizontal="4dp"
+                            android:layout_weight="1"
                             android:text="@string/btn_copy"
                             android:textColor="@color/white"
-                            style="?android:attr/buttonBarButtonStyle"
                             app:backgroundTint="@color/button_copy_bg" />
 
                     </LinearLayout>

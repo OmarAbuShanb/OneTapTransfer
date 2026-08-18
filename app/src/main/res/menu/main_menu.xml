@@ -2,6 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_whats_new"
+        android:title="@string/action_whats_new"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_privacy"
         android:title="@string/privacy_policy"
         app:showAsAction="never" />

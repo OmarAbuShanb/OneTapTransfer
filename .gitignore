@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+/app/onetaptransfer-release-key.jks
+/key.properties
